@@ -3,9 +3,12 @@ import User from "../models/User.js";
 
 export const getPosts = async (req, res) => {
 	try {
+		// console.log('Fetching posts...');
 		const posts = await Post.find().populate("user", "name email");
+		// console.log(`Found ${posts.length} posts`);
 		res.status(200).json(posts);
 	} catch (error) {
+		console.error("Error fetching posts:", error);
 		res.status(500).json({ message: error.message });
 	}
 };

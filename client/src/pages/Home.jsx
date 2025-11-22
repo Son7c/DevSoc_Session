@@ -1,32 +1,81 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import usePostStore from '../store/postStore';
 import useAuthStore from '../store/authStore';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
+import PostModal from '../components/PostModal';
+import LoadingSpinner from '../components/LoadingSpinner';
+import API from '../axios';
 
 const Home = () => {
   const { posts, getPosts, isLoading, isError, message, deletePost } =
     usePostStore();
   const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [summary, setSummary] = useState('');
+  const [translated, setTranslated] = useState(null);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [showTranslate, setShowTranslate] = useState(false);
 
   useEffect(() => {
     getPosts();
   }, [getPosts]);
 
   const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this post?')) {
+    if (window.confirm('Are you sure you want to delete this story?')) {
       deletePost(id);
+      setSelectedPost(null);
     }
   };
 
+  const handleEdit = (id) => {
+    setSelectedPost(null);
+    navigate(`/edit-post/${id}`);
+  };
+
+  const handleSummarize = async () => {
+    if (!selectedPost) return;
+    setIsLoadingAI(true);
+    try {
+      const response = await API.post('/ai/summarize', {
+        title: selectedPost.title,
+        content: selectedPost.content,
+      });
+      setSummary(response.data.summary);
+    } catch (error) {
+      alert('Failed to generate summary');
+    } finally {
+      setIsLoadingAI(false);
+    }
+  };
+
+  const handleTranslate = async (language) => {
+    if (!selectedPost) return;
+    setIsLoadingAI(true);
+    try {
+      const response = await API.post('/ai/translate', {
+        title: selectedPost.title,
+        content: selectedPost.content,
+        targetLanguage: language,
+      });
+      setTranslated(response.data);
+      setShowTranslate(false);
+    } catch (error) {
+      alert('Failed to translate');
+    } finally {
+      setIsLoadingAI(false);
+    }
+  };
+
+  const closeModal = () => {
+    setSelectedPost(null);
+    setSummary('');
+    setTranslated(null);
+    setShowTranslate(false);
+  };
+
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
-          <p className="mt-4 text-gray-500 font-medium">Loading stories...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner text="Loading stories..." />;
   }
 
   if (isError) {
@@ -39,7 +88,7 @@ const Home = () => {
           <p className="text-red-500 mb-6">{message}</p>
           <button
             onClick={() => getPosts()}
-            className="btn-primary"
+            className="bg-black text-white px-6 py-3 rounded-full font-medium hover:bg-gray-800 transition-colors"
           >
             Try Again
           </button>
@@ -50,19 +99,19 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-      {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
-        <div className="text-center max-w-3xl mx-auto">
-          <h1 className="text-5xl sm:text-6xl font-serif font-bold text-gray-900 mb-6 leading-tight">
-            Discover stories that matter to you.
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
+        <div className="text-center max-w-4xl mx-auto">
+          <h1 className="text-6xl sm:text-7xl font-serif font-bold text-gray-900 mb-8 leading-tight tracking-tight">
+            Discover stories that <br className="hidden sm:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600">matter to you.</span>
           </h1>
-          <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-            A space for writers, thinkers, and creators to share their ideas with the world.
+          <p className="text-xl sm:text-2xl text-gray-600 mb-10 leading-relaxed max-w-2xl mx-auto">
+            A curated space for writers, thinkers, and creators to share their most profound ideas with the world.
           </p>
           {!user && (
             <Link
               to="/register"
-              className="btn-primary inline-block"
+              className="bg-black text-white px-10 py-4 rounded-full text-lg font-medium hover:bg-gray-800 transition-all hover:scale-105 active:scale-95 shadow-xl hover:shadow-2xl inline-block"
             >
               Start Reading
             </Link>
@@ -96,7 +145,7 @@ const Home = () => {
             {user && (
               <Link
                 to="/create-post"
-                className="btn-primary"
+                className="bg-black text-white px-8 py-4 rounded-full font-medium hover:bg-gray-800 transition-colors inline-block"
               >
                 Write a Story
               </Link>
@@ -107,53 +156,42 @@ const Home = () => {
             {posts.map((post) => (
               <article
                 key={post._id}
-                className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full"
+                onClick={() => setSelectedPost(post)}
+                className="group bg-white rounded-3xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:shadow-gray-200/50 transition-all duration-500 cursor-pointer hover:-translate-y-1"
               >
-                <div className="p-8 flex-1 flex flex-col">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
+                <div className="p-8 h-full flex flex-col">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500">
                       {post.user?.name?.[0]?.toUpperCase() || 'U'}
                     </div>
-                    <span className="text-sm font-medium text-gray-900">
-                      {post.user?.name || 'Unknown Author'}
-                    </span>
+                    <div className="text-sm">
+                      <p className="font-medium text-gray-900">
+                        {post.user?.name || 'Unknown Author'}
+                      </p>
+                      <p className="text-gray-500">
+                        {new Date(post.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </p>
+                    </div>
                   </div>
+
+                  <h3 className="text-2xl font-serif font-bold text-gray-900 mb-4 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">
+                    {post.title}
+                  </h3>
                   
-                  <Link to={`/edit-post/${post._id}`} className="block group-hover:text-blue-600 transition-colors">
-                    <h3 className="text-2xl font-serif font-bold text-gray-900 mb-3 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">
-                      {post.title}
-                    </h3>
-                  </Link>
-                  
-                  <p className="text-gray-600 line-clamp-3 mb-6 flex-1 leading-relaxed">
+                  <p className="text-gray-600 line-clamp-3 mb-6 flex-grow leading-relaxed">
                     {post.content}
                   </p>
 
                   <div className="flex items-center justify-between pt-6 border-t border-gray-50 mt-auto">
-                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      {new Date(post.createdAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
+                    <span className="inline-flex items-center text-sm font-medium text-blue-600 group-hover:translate-x-1 transition-transform">
+                      Read story &rarr;
                     </span>
-                    
-                    {user && user._id === post.user?._id && (
-                      <div className="flex gap-3">
-                        <Link
-                          to={`/edit-post/${post._id}`}
-                          className="text-sm font-medium text-gray-500 hover:text-black transition-colors"
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(post._id)}
-                          className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
+                    <span className="text-xs font-medium text-gray-400 bg-gray-50 px-3 py-1 rounded-full">
+                      {Math.ceil(post.content.length / 1000)} min read
+                    </span>
                   </div>
                 </div>
               </article>
@@ -161,6 +199,23 @@ const Home = () => {
           </div>
         )}
       </div>
+
+      {/* Modal */}
+      <PostModal
+        post={selectedPost}
+        onClose={closeModal}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        currentUser={user}
+        summary={summary}
+        translated={translated}
+        isLoadingAI={isLoadingAI}
+        showTranslate={showTranslate}
+        onSummarize={handleSummarize}
+        onTranslate={handleTranslate}
+        onToggleTranslate={() => setShowTranslate(!showTranslate)}
+        onShowOriginal={() => setTranslated(null)}
+      />
     </div>
   );
 };

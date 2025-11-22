@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import usePostStore from '../store/postStore';
+import LoadingSpinner from '../components/LoadingSpinner';
+import Alert from '../components/Alert';
 
 const CreateEditPost = () => {
   const [formData, setFormData] = useState({
@@ -63,16 +65,7 @@ const CreateEditPost = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
-          <p className="mt-4 text-gray-500 font-medium">
-            {id ? 'Saving changes...' : 'Publishing story...'}
-          </p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner text={id ? 'Saving changes...' : 'Publishing story...'} />;
   }
 
   return (
@@ -89,19 +82,7 @@ const CreateEditPost = () => {
           </p>
         </div>
 
-        {isError && (
-          <div className="mb-8 bg-red-50 border border-red-100 rounded-xl p-4 flex items-start gap-3">
-            <div className="text-red-500 mt-0.5">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-red-800 font-medium">Something went wrong</h3>
-              <p className="text-red-600 text-sm mt-1">{message}</p>
-            </div>
-          </div>
-        )}
+        {isError && <Alert message={message} />}
 
         <form
           onSubmit={onSubmit}

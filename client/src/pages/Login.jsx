@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router';
 import useAuthStore from '../store/authStore';
+import LoadingSpinner from '../components/LoadingSpinner';
+import Alert from '../components/Alert';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -41,14 +43,7 @@ const Login = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
-          <p className="mt-4 text-gray-500 font-medium">Signing in...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner text="Signing in..." />;
   }
 
   return (
@@ -62,16 +57,7 @@ const Login = () => {
         </div>
 
         <div className="bg-white rounded-3xl shadow-xl shadow-gray-100/50 border border-gray-100 p-8 sm:p-10">
-          {isError && (
-            <div className="mb-6 bg-red-50 border border-red-100 rounded-xl p-4 flex items-start gap-3">
-              <div className="text-red-500 mt-0.5">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <p className="text-red-600 text-sm font-medium pt-0.5">{message}</p>
-            </div>
-          )}
+          {isError && <Alert message={message} />}
 
           <form className="space-y-6" onSubmit={onSubmit}>
             <div>
