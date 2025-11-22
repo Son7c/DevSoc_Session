@@ -29,12 +29,36 @@ app.get("/", (req, res) => {
 	res.send("Hello, World!");
 });
 
-// Connect to MongoDB and start server
-connectDB(envKeys.MONGO_URI)
-	.then(() => {
-		app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-	})
-	.catch((err) => {
+// Connect to MongoDB
+let isConnected = false;
+
+const connectToDatabase = async () => {
+	if (isConnected) {
+		return;
+	}
+	try {
+		await connectDB(envKeys.MONGO_URI);
+		isConnected = true;
+	} catch (err) {
 		console.error("MongoDB connect error: ", err);
-		process.exit(1);
-	});
+		throw err;
+	}
+};
+
+// For Vercel serverless
+export default async (req, res) => {
+	await connectToDatabase();
+	return app(req, res);
+};
+
+// For local development
+if (process.env.NODE_ENV !== "production") {
+	connectDB(envKeys.MONGO_URI)
+		.then(() => {
+			app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+		})
+		.catch((err) => {
+			console.error("MongoDB connect error: ", err);
+			process.exit(1);
+		});
+}
